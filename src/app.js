@@ -13,6 +13,9 @@ const authenticate = require('./middlewares/auth.middleware');
 
 const app = express();
 
+// Trust proxy (needed for Vercel/reverse proxies + rate limiting)
+app.set('trust proxy', 1);
+
 // 9. Logging & Monitoring
 app.use(morgan('combined'));
 
