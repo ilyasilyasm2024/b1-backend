@@ -1,18 +1,13 @@
 require('dotenv').config();
+const mongoose = require('mongoose');
 const app = require('./src/app');
-const connectDatabase = require('./src/config/database');
 
 const PORT = process.env.PORT || 3000;
 
-// Connect to DB before handling requests (works for both serverless & traditional)
-app.use(async (req, res, next) => {
-  await connectDatabase();
-  next();
-});
-
 // For local development
 if (process.env.NODE_ENV !== 'production') {
-  connectDatabase().then(() => {
+  mongoose.connect(process.env.MONGO_DB_URL).then(() => {
+    console.log('MongoDB connected');
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });

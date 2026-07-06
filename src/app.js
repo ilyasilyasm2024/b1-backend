@@ -2,6 +2,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const mongoose = require('mongoose');
 // express-mongo-sanitize removed — incompatible with Express 5 (req.query is read-only)
 // Using custom sanitization below instead
 const morgan = require('morgan');
@@ -12,6 +13,19 @@ const authRoutes = require('./modules/auth/auth.routes');
 const authenticate = require('./middlewares/auth.middleware');
 
 const app = express();
+
+// Ensure DB is connected before handling any request (serverless support)
+app.use(async (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    try {
+      await mongoose.connect(process.env.MONGO_DB_URL);
+    } catch (err) {
+      console.error('MongoDB connection error:', err.message);
+      return res.status(503).json({ error: 'Database connection failed' });
+    }
+  }
+  next();
+});
 
 // Trust proxy (needed for Vercel/reverse proxies + rate limiting)
 app.set('trust proxy', 1);
