@@ -51,6 +51,16 @@ class UserController {
       res.status(500).json({ error: err.message });
     }
   }
+
+  async completeTour(req, res) {
+    try {
+      const user = await userService.updateUser(req.user.userId, { firstTour: true });
+      if (!user) return res.status(404).json({ error: 'User not found' });
+      res.json({ message: 'Tour completed' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
 }
 
 module.exports = new UserController();

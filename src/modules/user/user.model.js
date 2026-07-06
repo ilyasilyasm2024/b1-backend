@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema({
   lastName: { type: String, required: true },
   isConnected: { type: Boolean, default: false },
   isVerified: { type: Boolean, default: false },
+  firstTour: { type: Boolean, default: false },
   verificationToken: { type: String, default: '' },
   verificationTokenExpires: { type: Date },
   resetPasswordToken: { type: String, default: '' },
