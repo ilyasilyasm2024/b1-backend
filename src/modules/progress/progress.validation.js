@@ -16,7 +16,7 @@ const saveProgressSchema = Joi.object({
   ).default({}),
   texts: Joi.object().pattern(
     Joi.string().max(50),
-    Joi.array().items(Joi.string().max(500)).max(10)
+    Joi.array().items(Joi.string().allow('').max(500)).max(10)
   ).default({}),
   done: Joi.object().pattern(
     Joi.string().max(50),
@@ -26,7 +26,7 @@ const saveProgressSchema = Joi.object({
     Joi.object({
       text: Joi.string().max(500).required(),
       color: Joi.string().max(20).required(),
-    })
+    }).unknown(true)
   ).max(200).default([]),
 });
 
