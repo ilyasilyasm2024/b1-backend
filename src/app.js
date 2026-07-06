@@ -102,15 +102,6 @@ app.get('/', (req, res) => {
   res.json({ message: 'Hello from Express!' });
 });
 
-app.get('/health', (req, res) => {
-  const mongoose = require('mongoose');
-  const dbState = mongoose.connection.readyState;
-  // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
-  const status = dbState === 1 ? 'connected' : 'disconnected';
-  const code = dbState === 1 ? 200 : 503;
-  res.status(code).json({ database: status, uptime: process.uptime() });
-});
-
 // Public routes
 app.use('/auth', authLimiter, authRoutes);
 
