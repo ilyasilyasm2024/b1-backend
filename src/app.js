@@ -9,6 +9,8 @@ const morgan = require('morgan');
 const userRoutes = require('./modules/user/user.routes');
 const vocabularyRoutes = require('./modules/vocabulary/vocabulary.routes');
 const progressRoutes = require('./modules/progress/progress.routes');
+const schreibenRoutes = require('./modules/schreiben/schreiben.routes');
+const sprechenRoutes = require('./modules/sprechen/sprechen.routes');
 const authRoutes = require('./modules/auth/auth.routes');
 const authenticate = require('./middlewares/auth.middleware');
 
@@ -109,6 +111,8 @@ app.use('/auth', authLimiter, authRoutes);
 app.use('/users', authenticate, userRoutes);
 app.use('/vocabulary', authenticate, vocabularyRoutes);
 app.use('/progress', authenticate, progressRoutes);
+app.use('/schreiben', authenticate, schreibenRoutes);
+app.use('/sprechen', authenticate, sprechenRoutes);
 
 // Global error handler - prevents leaking stack traces
 app.use((err, req, res, next) => {
