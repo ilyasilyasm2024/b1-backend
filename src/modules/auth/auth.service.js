@@ -29,6 +29,8 @@ class AuthService {
       isVerified: false,
       verificationToken,
       verificationTokenExpires,
+      plan: 'beta',
+      subscriptionExpiresAt: null,
     });
 
     await sendVerificationEmail(email, verificationToken);

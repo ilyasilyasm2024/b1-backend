@@ -61,6 +61,25 @@ class UserController {
       res.status(500).json({ error: err.message });
     }
   }
+
+  async getPlan(req, res) {
+    try {
+      const { getEffectivePlan, getPlanLimits } = require('../../config/plans');
+      const user = await userService.getUserById(req.user.userId);
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
+      const effectivePlan = getEffectivePlan(user);
+      const limits = getPlanLimits(effectivePlan);
+
+      res.json({
+        plan: effectivePlan,
+        limits,
+        subscriptionExpiresAt: user.subscriptionExpiresAt || null,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
 }
 
 module.exports = new UserController();

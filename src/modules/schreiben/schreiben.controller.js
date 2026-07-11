@@ -22,12 +22,12 @@ class SchreibenController {
 
       const wordCount = text.trim().split(/\s+/).length;
 
-      if (wordCount < 80) {
-        return res.status(400).json({ error: 'Text must have at least 80 words' });
+      if (wordCount < 20) {
+        return res.status(400).json({ error: 'Text must have at least 20 words' });
       }
 
-      if (wordCount > 200) {
-        return res.status(400).json({ error: 'Text must have at most 200 words' });
+      if (wordCount > 300) {
+        return res.status(400).json({ error: 'Text must have at most 300 words' });
       }
 
       const version = await SchreibenVersion.create({

@@ -17,6 +17,8 @@ class UserService {
     delete updateData.verificationToken;
     delete updateData.verificationTokenExpires;
     delete updateData.token;
+    delete updateData.plan;
+    delete updateData.subscriptionExpiresAt;
     return userRepository.update(id, updateData);
   }
 

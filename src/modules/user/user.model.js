@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema({
   isConnected: { type: Boolean, default: false },
   isVerified: { type: Boolean, default: false },
   firstTour: { type: Boolean, default: false },
+  plan: { type: String, enum: ['beta', 'free', 'silver', 'gold', 'platinum', 'lifetime'], required: true, default: 'beta' },
+  subscriptionExpiresAt: { type: Date, default: null },
   verificationToken: { type: String, default: '' },
   verificationTokenExpires: { type: Date },
   resetPasswordToken: { type: String, default: '' },
@@ -26,6 +28,6 @@ const userSchema = new mongoose.Schema({
   imageUrl: { type: String, default: '' },
   timeSpentInOurApp: { type: Number, default: 0 },
   vocabularyList: [vocabularyItemSchema],
-}, { timestamps: true });
+}, { timestamps: true, minimize: false });
 
 module.exports = mongoose.model('User', userSchema);
