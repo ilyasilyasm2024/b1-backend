@@ -1,8 +1,13 @@
 const notesRepository = require('./notes.repository');
+const { sanitizeHtml } = require('./notes.sanitize');
 
 class NotesService {
   async addNote(userId, noteData) {
-    return notesRepository.create({ ...noteData, userId });
+    const data = { ...noteData, userId };
+    if (typeof data.content === 'string') {
+      data.content = sanitizeHtml(data.content);
+    }
+    return notesRepository.create(data);
   }
 
   async getNotesByUser(userId) {
@@ -10,7 +15,11 @@ class NotesService {
   }
 
   async updateNote(id, userId, updateData) {
-    return notesRepository.updateByUser(id, userId, updateData);
+    const data = { ...updateData };
+    if (typeof data.content === 'string') {
+      data.content = sanitizeHtml(data.content);
+    }
+    return notesRepository.updateByUser(id, userId, data);
   }
 
   async deleteNote(id, userId) {

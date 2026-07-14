@@ -83,8 +83,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// 8. Data Integrity - strip HTML/script tags from string inputs
+// 8. Data Integrity - strip HTML/script tags from string inputs.
+// Notes support rich text, so they are exempt here and sanitized with an
+// allowlist inside the notes module instead.
 app.use((req, res, next) => {
+  if (req.path.startsWith('/notes')) return next();
   if (req.body && typeof req.body === 'object') {
     sanitizeObject(req.body);
   }
