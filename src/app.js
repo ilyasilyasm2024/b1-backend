@@ -11,6 +11,7 @@ const vocabularyRoutes = require('./modules/vocabulary/vocabulary.routes');
 const progressRoutes = require('./modules/progress/progress.routes');
 const schreibenRoutes = require('./modules/schreiben/schreiben.routes');
 const sprechenRoutes = require('./modules/sprechen/sprechen.routes');
+const notesRoutes = require('./modules/notes/notes.routes');
 const authRoutes = require('./modules/auth/auth.routes');
 const authenticate = require('./middlewares/auth.middleware');
 
@@ -113,6 +114,7 @@ app.use('/vocabulary', authenticate, vocabularyRoutes);
 app.use('/progress', authenticate, progressRoutes);
 app.use('/schreiben', authenticate, schreibenRoutes);
 app.use('/sprechen', authenticate, sprechenRoutes);
+app.use('/notes', authenticate, notesRoutes);
 
 // Global error handler - prevents leaking stack traces
 app.use((err, req, res, next) => {
