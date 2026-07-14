@@ -12,6 +12,8 @@ const addNoteSchema = Joi.object({
   color: Joi.string().pattern(HEX_COLOR).default('#fde68a').messages({
     'string.pattern.base': 'Color must be a valid hex color',
   }),
+  x: Joi.number().default(100),
+  y: Joi.number().default(120),
 });
 
 const updateNoteSchema = Joi.object({
@@ -24,6 +26,8 @@ const updateNoteSchema = Joi.object({
   color: Joi.string().pattern(HEX_COLOR).messages({
     'string.pattern.base': 'Color must be a valid hex color',
   }),
+  x: Joi.number(),
+  y: Joi.number(),
 }).min(1);
 
 module.exports = { addNoteSchema, updateNoteSchema };
