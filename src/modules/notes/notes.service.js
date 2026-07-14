@@ -7,6 +7,9 @@ class NotesService {
     if (typeof data.content === 'string') {
       data.content = sanitizeHtml(data.content);
     }
+    if (typeof data.title === 'string') {
+      data.title = data.title.replace(/<[^>]*>/g, '');
+    }
     return notesRepository.create(data);
   }
 
@@ -18,6 +21,9 @@ class NotesService {
     const data = { ...updateData };
     if (typeof data.content === 'string') {
       data.content = sanitizeHtml(data.content);
+    }
+    if (typeof data.title === 'string') {
+      data.title = data.title.replace(/<[^>]*>/g, '');
     }
     return notesRepository.updateByUser(id, userId, data);
   }
