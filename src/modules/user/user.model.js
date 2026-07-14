@@ -20,6 +20,9 @@ const userSchema = new mongoose.Schema({
   firstTour: { type: Boolean, default: false },
   plan: { type: String, enum: ['beta', 'free', 'silver', 'gold', 'platinum', 'lifetime'], required: true, default: 'beta' },
   subscriptionExpiresAt: { type: Date, default: null },
+  streak: { type: Number, default: 0 },
+  lastLoginDate: { type: String, default: '' },
+  loginDates: { type: [String], default: [] }, // Array of "YYYY-MM-DD" strings // YYYY-MM-DD format
   verificationToken: { type: String, default: '' },
   verificationTokenExpires: { type: Date },
   resetPasswordToken: { type: String, default: '' },

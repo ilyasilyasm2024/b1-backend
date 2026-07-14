@@ -46,6 +46,14 @@ class AuthRepository {
     return User.findByIdAndUpdate(userId, { token: '', isConnected: false }, { new: true });
   }
 
+  async updateStreak(userId, streak, lastLoginDate) {
+    return User.findByIdAndUpdate(userId, {
+      streak,
+      lastLoginDate,
+      $addToSet: { loginDates: lastLoginDate }, // Add date without duplicates
+    }, { new: true });
+  }
+
   async findByResetToken(token) {
     return User.findOne({ resetPasswordToken: token }).select('+password');
   }

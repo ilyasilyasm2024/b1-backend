@@ -92,7 +92,18 @@ class AuthService {
     const token = this._generateToken(user);
     await authRepository.updateToken(user._id, token);
 
-    return { user: this._sanitize(user), token };
+    // Update streak
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    let newStreak = 1;
+    if (user.lastLoginDate === today) {
+      newStreak = user.streak || 1; // Same day, keep streak
+    } else if (user.lastLoginDate === yesterday) {
+      newStreak = (user.streak || 0) + 1; // Consecutive day
+    }
+    await authRepository.updateStreak(user._id, newStreak, today);
+
+    return { user: this._sanitize(user, newStreak), token };
   }
 
   async logout(userId) {
@@ -139,11 +150,12 @@ class AuthService {
     );
   }
 
-  _sanitize(user) {
+  _sanitize(user, streak) {
     const obj = user.toObject();
     delete obj.password;
     delete obj.verificationToken;
     delete obj.verificationTokenExpires;
+    if (streak !== undefined) obj.streak = streak;
     return obj;
   }
 }
