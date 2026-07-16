@@ -20,6 +20,18 @@ class UserController {
     }
   }
 
+  // Activate a subscription (called after successful payment).
+  async subscribe(req, res) {
+    try {
+      const { plan, billing } = req.body;
+      if (!plan) return res.status(400).json({ error: 'Plan is required' });
+      const result = await userService.subscribe(req.user.userId, { plan, billing });
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+
   async getProfile(req, res) {
     try {
       const user = await userService.getUserById(req.user.userId);

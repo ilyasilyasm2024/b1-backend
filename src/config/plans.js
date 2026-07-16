@@ -91,6 +91,19 @@ const PLAN_LIMITS = {
   },
 };
 
+// Monthly prices in MAD (used for affiliate commission calculation).
+// "lifetime" is a one-time price.
+const PLAN_PRICES = {
+  silver: 30,
+  gold: 50,
+  platinum: 70,
+  lifetime: 300,
+};
+
+function getPlanPrice(planName) {
+  return PLAN_PRICES[planName] || 0;
+}
+
 function getPlanLimits(planName) {
   return PLAN_LIMITS[planName] || PLAN_LIMITS.free;
 }
@@ -106,4 +119,4 @@ function getEffectivePlan(user) {
   return user.plan || 'beta';
 }
 
-module.exports = { PLAN_LIMITS, getPlanLimits, isExpired, getEffectivePlan };
+module.exports = { PLAN_LIMITS, PLAN_PRICES, getPlanPrice, getPlanLimits, isExpired, getEffectivePlan };

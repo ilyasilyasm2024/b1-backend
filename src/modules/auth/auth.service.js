@@ -2,10 +2,11 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const authRepository = require('./auth.repository');
+const affiliateService = require('../affiliate/affiliate.service');
 const { sendVerificationEmail, sendResetPasswordEmail } = require('../../config/mailer');
 
 class AuthService {
-  async signup({ username, email, firstName, lastName, password }) {
+  async signup({ username, email, firstName, lastName, password, referralCode }) {
     const existingUser = await authRepository.findByUsername(username);
     if (existingUser) {
       throw new Error('Username already exists');
@@ -14,6 +15,13 @@ class AuthService {
     const existingEmail = await authRepository.findByEmail(email);
     if (existingEmail) {
       throw new Error('Email already exists');
+    }
+
+    // If a referral code was provided, validate it before storing.
+    let validReferralCode = '';
+    if (referralCode) {
+      const check = await affiliateService.validateCode(referralCode);
+      if (check.valid) validReferralCode = check.referralCode;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -31,7 +39,23 @@ class AuthService {
       verificationTokenExpires,
       plan: 'beta',
       subscriptionExpiresAt: null,
+      referredBy: validReferralCode,
     });
+
+    // Link this user to the influencer for referral tracking.
+    if (validReferralCode) {
+      try {
+        await affiliateService.attachReferral({
+          code: validReferralCode,
+          userId: user._id,
+          username: user.username,
+          userEmail: user.email,
+        });
+      } catch (e) {
+        // Don't fail signup if referral attachment fails
+        console.error('Referral attach failed:', e.message);
+      }
+    }
 
     await sendVerificationEmail(email, verificationToken);
 

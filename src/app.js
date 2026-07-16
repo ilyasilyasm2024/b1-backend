@@ -12,6 +12,7 @@ const progressRoutes = require('./modules/progress/progress.routes');
 const schreibenRoutes = require('./modules/schreiben/schreiben.routes');
 const sprechenRoutes = require('./modules/sprechen/sprechen.routes');
 const notesRoutes = require('./modules/notes/notes.routes');
+const affiliateRoutes = require('./modules/affiliate/affiliate.routes');
 const authRoutes = require('./modules/auth/auth.routes');
 const authenticate = require('./middlewares/auth.middleware');
 
@@ -110,6 +111,9 @@ app.get('/', (req, res) => {
 
 // Public routes
 app.use('/auth', authLimiter, authRoutes);
+
+// Affiliate routes (self-managed auth: public / influencer JWT / admin secret)
+app.use('/affiliate', affiliateRoutes);
 
 // Protected routes - require valid JWT
 app.use('/users', authenticate, userRoutes);

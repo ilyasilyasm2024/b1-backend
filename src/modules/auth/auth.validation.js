@@ -46,6 +46,16 @@ const signupSchema = Joi.object({
       'string.max': 'Password must be at most 128 characters',
       'any.required': 'Password is required',
     }),
+  referralCode: Joi.string()
+    .alphanum()
+    .min(3)
+    .max(20)
+    .uppercase()
+    .allow('')
+    .optional()
+    .messages({
+      'string.alphanum': 'Referral code must only contain letters and numbers',
+    }),
 });
 
 const loginSchema = Joi.object({

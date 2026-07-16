@@ -20,6 +20,8 @@ const userSchema = new mongoose.Schema({
   firstTour: { type: Boolean, default: false },
   plan: { type: String, enum: ['beta', 'free', 'silver', 'gold', 'platinum', 'lifetime'], required: true, default: 'beta' },
   subscriptionExpiresAt: { type: Date, default: null },
+  // Affiliate: referral code of the influencer who referred this user (if any)
+  referredBy: { type: String, default: '', uppercase: true },
   streak: { type: Number, default: 0 },
   lastLoginDate: { type: String, default: '' },
   loginDates: { type: [String], default: [] }, // Array of "YYYY-MM-DD" strings // YYYY-MM-DD format
