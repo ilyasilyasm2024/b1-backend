@@ -88,7 +88,16 @@ class AffiliateService {
     const influencer = await repo.findInfluencerById(referral.influencerId);
     if (!influencer) return null;
 
-    const commissionAmount = Math.round((amountPaid * influencer.commissionPercent / 100) * 100) / 100;
+    // Determine if this is the first purchase or a renewal
+    const existingCommissions = await repo.listCommissionsByInfluencer(influencer._id);
+    const userHasPreviousPurchase = existingCommissions.some(c => c.userId.toString() === userId.toString());
+
+    // Use first purchase rate or renewal rate
+    const rate = userHasPreviousPurchase
+      ? (influencer.renewalCommission ?? influencer.commissionPercent ?? 20)
+      : (influencer.firstPurchaseCommission ?? influencer.commissionPercent ?? 50);
+
+    const commissionAmount = Math.round((amountPaid * rate / 100) * 100) / 100;
 
     const commission = await repo.createCommission({
       influencerId: influencer._id,
@@ -97,7 +106,7 @@ class AffiliateService {
       plan,
       amountPaid,
       commissionAmount,
-      commissionPercent: influencer.commissionPercent,
+      commissionPercent: rate,
       period: currentPeriod(),
     });
 
@@ -153,6 +162,19 @@ class AffiliateService {
   async listInfluencers() {
     const list = await repo.listInfluencers();
     return list.map((i) => this._sanitize(i));
+  }
+
+  // --- Admin: update influencer settings ---
+  async updateInfluencer(influencerId, updateData) {
+    // Only allow specific fields to be updated
+    const allowed = ['discountPercent', 'commissionPercent', 'firstPurchaseCommission', 'renewalCommission', 'status', 'payoutInfo', 'name'];
+    const filtered = {};
+    for (const key of allowed) {
+      if (updateData[key] !== undefined) filtered[key] = updateData[key];
+    }
+    const updated = await repo.updateInfluencer(influencerId, filtered);
+    if (!updated) throw new Error('Influencer not found');
+    return this._sanitize(updated);
   }
 
   // --- Admin: mark an influencer's pending commissions as paid (monthly payout) ---

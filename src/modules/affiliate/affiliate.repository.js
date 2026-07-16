@@ -21,6 +21,9 @@ class AffiliateRepository {
   listInfluencers() {
     return Influencer.find().sort({ createdAt: -1 });
   }
+  updateInfluencer(id, data) {
+    return Influencer.findByIdAndUpdate(id, data, { new: true });
+  }
   incrementBalance(influencerId, amount) {
     return Influencer.findByIdAndUpdate(
       influencerId,

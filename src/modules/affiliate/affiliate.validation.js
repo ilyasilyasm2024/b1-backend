@@ -7,6 +7,8 @@ const createInfluencerSchema = Joi.object({
   referralCode: Joi.string().alphanum().min(3).max(20).uppercase().optional(),
   discountPercent: Joi.number().min(0).max(100).optional(),
   commissionPercent: Joi.number().min(0).max(100).optional(),
+  firstPurchaseCommission: Joi.number().min(0).max(100).optional(),
+  renewalCommission: Joi.number().min(0).max(100).optional(),
 });
 
 const loginSchema = Joi.object({

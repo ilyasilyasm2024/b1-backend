@@ -21,6 +21,7 @@ router.post('/promo/redeem', authenticate, controller.redeemPromo);
 // --- Admin (x-admin-secret header) ---
 router.post('/admin/influencers', requireAdmin, controller.createInfluencer);
 router.get('/admin/influencers', requireAdmin, controller.listInfluencers);
+router.put('/admin/influencers/:influencerId', requireAdmin, controller.updateInfluencer);
 router.post('/admin/influencers/:influencerId/payout', requireAdmin, controller.payout);
 
 module.exports = router;

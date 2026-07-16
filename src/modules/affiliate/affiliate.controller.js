@@ -36,6 +36,17 @@ class AffiliateController {
     }
   }
 
+  // --- Admin: update influencer settings ---
+  async updateInfluencer(req, res) {
+    try {
+      const { influencerId } = req.params;
+      const result = await affiliateService.updateInfluencer(influencerId, req.body);
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+
   // --- Influencer login ---
   async login(req, res) {
     try {
