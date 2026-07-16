@@ -14,7 +14,8 @@ class ProgressController {
       const progress = await progressService.getProgress(userId, moduleId);
       res.json(progress);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 
@@ -36,7 +37,8 @@ class ProgressController {
       await progressService.saveProgress(userId, moduleId, value);
       res.json({ message: 'Progress saved' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 
@@ -46,7 +48,8 @@ class ProgressController {
       const progress = await progressService.getAllProgress(userId);
       res.json(progress);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 }

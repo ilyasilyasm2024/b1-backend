@@ -5,7 +5,27 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --runInBand",
+    "test:unit": "jest --runInBand --testPathIgnorePatterns tests/integration",
+    "test:integration": "jest --runInBand tests/integration",
+    "test:watch": "jest --watch --testPathIgnorePatterns tests/integration",
+    "test:coverage": "jest --coverage --runInBand",
+    "audit:security": "bash scripts/security-audit.sh",
+    "loadtest:smoke": "k6 run load-tests/smoke.js",
+    "loadtest:load": "k6 run load-tests/load.js",
+    "loadtest:spike": "k6 run load-tests/spike.js"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "clearMocks": true,
+    "testTimeout": 60000,
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/jest.setup.js"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/config/mailer.js"
+    ]
   },
   "keywords": [],
   "author": "",
@@ -21,7 +41,11 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.7.3",
     "morgan": "^1.11.0",
-    "nodemailer": "^9.0.3",
-    "rate-limit-mongo": "^2.3.2"
+    "nodemailer": "^9.0.3"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "mongodb-memory-server": "^11.2.0",
+    "supertest": "^7.2.2"
   }
 }

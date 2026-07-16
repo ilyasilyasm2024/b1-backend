@@ -31,7 +31,7 @@ const connectDatabase = async () => {
     cached.promise = mongoose
       .connect(process.env.MONGO_DB_URL, CONNECT_OPTIONS)
       .then((m) => {
-        console.log('MongoDB connected');
+        if (process.env.NODE_ENV !== 'test') console.log('MongoDB connected');
         return m;
       })
       .catch((err) => {

@@ -69,7 +69,8 @@ class AuthController {
       await authService.logout(userId);
       res.json({ message: 'Logged out successfully' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 

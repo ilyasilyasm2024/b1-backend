@@ -2,7 +2,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const MongoStore = require('rate-limit-mongo');
+const MongoRateLimitStore = require('./middlewares/mongoRateLimitStore');
 // express-mongo-sanitize removed — incompatible with Express 5 (req.query is read-only)
 // Using custom sanitization below instead
 const morgan = require('morgan');
@@ -35,8 +35,10 @@ app.use(async (req, res, next) => {
 // Trust proxy (needed for Vercel/reverse proxies + rate limiting)
 app.set('trust proxy', 1);
 
-// 9. Logging & Monitoring
-app.use(morgan('combined'));
+// 9. Logging & Monitoring (quiet during tests to keep output readable)
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan('combined'));
+}
 
 // 5. Security Misconfiguration - security headers
 app.use(helmet());
@@ -55,33 +57,41 @@ app.use(cors({
 // distributed traffic bypass the limit). Each limiter uses its own collection.
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 
+// Rate limiting is disabled under test (it would block rapid test traffic and
+// its shared-store connection keeps the process alive). It is exercised in
+// production/staging where NODE_ENV !== 'test'.
+const RATE_LIMITING_ENABLED = process.env.NODE_ENV !== 'test';
+
 function mongoStore(collectionName) {
-  return new MongoStore({
-    uri: process.env.MONGO_DB_URL,
-    collectionName,
-    expireTimeMs: RATE_WINDOW_MS,
-    errorHandler: (err) => console.error(`Rate limit store error (${collectionName}):`, err.message),
-  });
+  // Reuses the app's existing Mongoose connection; no extra DB connections and
+  // no vulnerable third-party dependencies.
+  return new MongoRateLimitStore({ collectionName, windowMs: RATE_WINDOW_MS });
 }
 
-const limiter = rateLimit({
-  windowMs: RATE_WINDOW_MS,
-  max: 700,
-  standardHeaders: true,
-  legacyHeaders: false,
-  store: mongoStore('rateLimitGlobal'),
-  message: { error: 'Too many requests, please try again later' },
-});
+const noopMiddleware = (req, res, next) => next();
+
+const limiter = RATE_LIMITING_ENABLED
+  ? rateLimit({
+      windowMs: RATE_WINDOW_MS,
+      max: 700,
+      standardHeaders: true,
+      legacyHeaders: false,
+      store: mongoStore('rateLimitGlobal'),
+      message: { error: 'Too many requests, please try again later' },
+    })
+  : noopMiddleware;
 app.use(limiter);
 
-const authLimiter = rateLimit({
-  windowMs: RATE_WINDOW_MS,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  store: mongoStore('rateLimitAuth'),
-  message: { error: 'Too many login attempts, please try again later' },
-});
+const authLimiter = RATE_LIMITING_ENABLED
+  ? rateLimit({
+      windowMs: RATE_WINDOW_MS,
+      max: 10,
+      standardHeaders: true,
+      legacyHeaders: false,
+      store: mongoStore('rateLimitAuth'),
+      message: { error: 'Too many login attempts, please try again later' },
+    })
+  : noopMiddleware;
 
 // Body parser with size limit (prevents DoS)
 app.use(express.json({ limit: '50kb' }));
@@ -147,6 +157,13 @@ app.use('/notes', authenticate, notesRoutes);
 
 // Global error handler - prevents leaking stack traces
 app.use((err, req, res, next) => {
+  // Malformed JSON or oversized body → client error, not a server fault.
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Payload too large' });
+  }
+  if (err.type === 'entity.parse.failed' || err instanceof SyntaxError) {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong' });
 });

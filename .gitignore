@@ -4,3 +4,8 @@ node_modules/
 .env.production
 dist/
 *.log
+
+# Test artifacts
+coverage/
+.mongodb-binaries/
+.jest-cache/

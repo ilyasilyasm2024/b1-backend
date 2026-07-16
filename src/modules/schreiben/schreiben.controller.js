@@ -40,7 +40,8 @@ class SchreibenController {
 
       res.status(201).json(version);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 
@@ -55,7 +56,8 @@ class SchreibenController {
 
       res.json(versions);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 
@@ -69,7 +71,8 @@ class SchreibenController {
 
       res.json({ message: 'Version deleted' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 }

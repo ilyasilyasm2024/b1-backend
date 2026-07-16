@@ -20,7 +20,8 @@ class AffiliateController {
       const list = await affiliateService.listInfluencers();
       res.json(list);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 
@@ -97,7 +98,8 @@ class AffiliateController {
       const codes = await affiliateService.listPromoCodes(req.influencer.influencerId);
       res.json(codes);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 

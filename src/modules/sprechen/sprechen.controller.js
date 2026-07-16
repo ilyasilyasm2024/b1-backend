@@ -26,7 +26,8 @@ class SprechenController {
 
       res.status(201).json(recording);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 
@@ -41,7 +42,8 @@ class SprechenController {
 
       res.json(recordings);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 
@@ -55,7 +57,8 @@ class SprechenController {
 
       res.json({ message: 'Recording deleted', publicId: recording.publicId });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 }

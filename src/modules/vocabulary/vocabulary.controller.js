@@ -14,7 +14,8 @@ class VocabularyController {
       const vocab = await vocabularyService.addVocab(userId, value);
       res.status(201).json(vocab);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 
@@ -24,7 +25,8 @@ class VocabularyController {
       const vocabs = await vocabularyService.getVocabsByUser(userId);
       res.json(vocabs);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 
@@ -42,7 +44,8 @@ class VocabularyController {
       if (!vocab) return res.status(404).json({ error: 'Vocabulary not found' });
       res.json(vocab);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 
@@ -54,7 +57,8 @@ class VocabularyController {
       if (!vocab) return res.status(404).json({ error: 'Vocabulary not found' });
       res.json({ message: 'Vocabulary deleted' });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Something went wrong' });
     }
   }
 }
