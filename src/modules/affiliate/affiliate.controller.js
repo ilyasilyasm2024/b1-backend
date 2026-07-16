@@ -68,6 +68,39 @@ class AffiliateController {
       res.status(400).json({ error: err.message });
     }
   }
+
+  // --- Influencer: generate promo code ---
+  async generatePromo(req, res) {
+    try {
+      const { plan, durationDays } = req.body;
+      const result = await affiliateService.generatePromoCode(req.influencer.influencerId, { plan, durationDays });
+      res.status(201).json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+
+  // --- Influencer: list promo codes ---
+  async listPromos(req, res) {
+    try {
+      const codes = await affiliateService.listPromoCodes(req.influencer.influencerId);
+      res.json(codes);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  // --- Public: redeem a promo code (requires user auth) ---
+  async redeemPromo(req, res) {
+    try {
+      const { code } = req.body;
+      if (!code) return res.status(400).json({ error: 'Code is required' });
+      const result = await affiliateService.redeemPromoCode(code, req.user.userId, req.user.username);
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
 }
 
 module.exports = new AffiliateController();

@@ -1,6 +1,7 @@
 const Influencer = require('./influencer.model');
 const Referral = require('./referral.model');
 const Commission = require('./commission.model');
+const PromoCode = require('./promo.model');
 
 class AffiliateRepository {
   // --- Influencer ---
@@ -63,6 +64,27 @@ class AffiliateRepository {
     const filter = { influencerId, status: 'pending' };
     if (period) filter.period = period;
     return Commission.updateMany(filter, { status: 'paid', paidAt: new Date() });
+  }
+
+  // --- Promo Codes ---
+  createPromo(data) {
+    return PromoCode.create(data);
+  }
+  countPromosByInfluencerInPeriod(influencerId, period) {
+    return PromoCode.countDocuments({ influencerId, period });
+  }
+  findPromoByCode(code) {
+    return PromoCode.findOne({ code: code.toUpperCase() });
+  }
+  listPromosByInfluencer(influencerId) {
+    return PromoCode.find({ influencerId }).sort({ createdAt: -1 });
+  }
+  markPromoUsed(code, userId, username) {
+    return PromoCode.findOneAndUpdate(
+      { code: code.toUpperCase(), isUsed: false },
+      { isUsed: true, usedBy: userId, usedByUsername: username, usedAt: new Date() },
+      { new: true }
+    );
   }
 }
 

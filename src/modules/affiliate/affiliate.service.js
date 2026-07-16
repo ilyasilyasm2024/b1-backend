@@ -171,6 +171,89 @@ class AffiliateService {
     };
   }
 
+  // --- Promo code generation (influencer) ---
+  async generatePromoCode(influencerId, { plan = 'gold', durationDays = 30 } = {}) {
+    const influencer = await repo.findInfluencerById(influencerId);
+    if (!influencer) throw new Error('Influencer not found');
+
+    const period = currentPeriod();
+    const count = await repo.countPromosByInfluencerInPeriod(influencerId, period);
+    const MONTHLY_LIMIT = 20;
+    if (count >= MONTHLY_LIMIT) {
+      throw new Error(`Monatliches Limit erreicht (${MONTHLY_LIMIT} Codes pro Monat)`);
+    }
+
+    // Generate unique code: GIFT-{INFLUENCER_INITIALS}-{RANDOM}
+    const initials = influencer.name.replace(/\s+/g, '').slice(0, 4).toUpperCase();
+    const random = crypto.randomBytes(3).toString('hex').toUpperCase().slice(0, 4);
+    const code = `GIFT-${initials}-${random}`;
+
+    // Code expires in 60 days
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 60);
+
+    const promo = await repo.createPromo({
+      code,
+      influencerId,
+      influencerName: influencer.name,
+      plan,
+      durationDays,
+      expiresAt,
+      period,
+    });
+
+    return {
+      code: promo.code,
+      plan: promo.plan,
+      durationDays: promo.durationDays,
+      expiresAt: promo.expiresAt,
+      remaining: MONTHLY_LIMIT - count - 1,
+    };
+  }
+
+  // --- List promo codes for an influencer ---
+  async listPromoCodes(influencerId) {
+    return repo.listPromosByInfluencer(influencerId);
+  }
+
+  // --- Redeem a promo code (user side) ---
+  async redeemPromoCode(code, userId, username) {
+    const promo = await repo.findPromoByCode(code);
+    if (!promo) throw new Error('Ungültiger Promo-Code');
+    if (promo.isUsed) throw new Error('Dieser Code wurde bereits verwendet');
+    if (promo.expiresAt < new Date()) throw new Error('Dieser Code ist abgelaufen');
+
+    // Mark as used
+    const updated = await repo.markPromoUsed(code, userId, username);
+    if (!updated) throw new Error('Code konnte nicht eingelöst werden');
+
+    // Activate the plan for the user
+    const User = require('../user/user.model');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + promo.durationDays);
+
+    await User.findByIdAndUpdate(userId, {
+      plan: promo.plan,
+      subscriptionExpiresAt: expiresAt,
+      referredBy: promo.influencerId ? (await repo.findInfluencerById(promo.influencerId))?.referralCode || '' : '',
+    });
+
+    // Also create a referral link if not already linked
+    await this.attachReferral({
+      code: (await repo.findInfluencerById(promo.influencerId))?.referralCode || '',
+      userId,
+      username,
+      userEmail: '',
+    });
+
+    return {
+      plan: promo.plan,
+      durationDays: promo.durationDays,
+      expiresAt,
+      message: `${promo.plan.charAt(0).toUpperCase() + promo.plan.slice(1)} für ${promo.durationDays} Tage aktiviert!`,
+    };
+  }
+
   _sanitize(influencer) {
     const obj = influencer.toObject ? influencer.toObject() : influencer;
     delete obj.password;

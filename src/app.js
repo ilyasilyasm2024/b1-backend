@@ -41,10 +41,11 @@ app.use(morgan('combined'));
 app.use(helmet());
 
 // 1. Broken Access Control - CORS
+const corsOrigins = (process.env.CORS_ORIGIN || '*').split(',').map(s => s.trim());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: corsOrigins.length === 1 && corsOrigins[0] === '*' ? '*' : corsOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret'],
 }));
 
 // 7. Auth Failures - Rate limiting
