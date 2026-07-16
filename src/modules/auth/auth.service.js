@@ -57,7 +57,11 @@ class AuthService {
       }
     }
 
-    await sendVerificationEmail(email, verificationToken);
+    // Fire-and-forget: don't block the signup response on the SMTP round-trip.
+    // Errors are logged; the user can request a resend if needed.
+    sendVerificationEmail(email, verificationToken).catch((e) => {
+      console.error('Verification email failed:', e.message);
+    });
 
     return { message: 'Account created. Please check your email to verify your account.' };
   }

@@ -3,7 +3,8 @@ const userService = require('./user.service');
 class UserController {
   async getAll(req, res) {
     try {
-      const users = await userService.getAllUsers();
+      const { page, limit } = req.query;
+      const users = await userService.getAllUsers({ page, limit });
       res.json(users);
     } catch (err) {
       res.status(500).json({ error: err.message });

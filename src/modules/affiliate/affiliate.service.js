@@ -88,9 +88,9 @@ class AffiliateService {
     const influencer = await repo.findInfluencerById(referral.influencerId);
     if (!influencer) return null;
 
-    // Determine if this is the first purchase or a renewal
-    const existingCommissions = await repo.listCommissionsByInfluencer(influencer._id);
-    const userHasPreviousPurchase = existingCommissions.some(c => c.userId.toString() === userId.toString());
+    // Determine if this is the first purchase or a renewal via a single indexed
+    // existence check instead of loading all commissions into memory.
+    const userHasPreviousPurchase = await repo.userHasCommission(influencer._id, userId);
 
     // Use first purchase rate or renewal rate
     const rate = userHasPreviousPurchase
@@ -121,19 +121,25 @@ class AffiliateService {
     const influencer = await repo.findInfluencerById(influencerId);
     if (!influencer) throw new Error('Influencer not found');
 
-    const referrals = await repo.listReferralsByInfluencer(influencerId);
-    const commissions = await repo.listCommissionsByInfluencer(influencerId);
+    // Counts and sums are computed in the DB via aggregation; only the lists
+    // actually shown in the UI are fetched (lean + capped).
+    const [referralAgg, pendingAgg, referrals, commissions] = await Promise.all([
+      repo.referralStats(influencerId),
+      repo.pendingCommissionTotal(influencerId),
+      repo.listReferralsByInfluencer(influencerId),
+      repo.listCommissionsByInfluencer(influencerId),
+    ]);
 
-    const pendingTotal = commissions
-      .filter((c) => c.status === 'pending')
-      .reduce((sum, c) => sum + c.commissionAmount, 0);
+    const totalReferrals = referralAgg[0]?.total ?? 0;
+    const subscribedReferrals = referralAgg[0]?.subscribed ?? 0;
+    const pendingTotal = pendingAgg[0]?.total ?? 0;
 
     return {
       influencer: this._sanitize(influencer),
       referralLink: `${process.env.FRONTEND_URL || ''}/signup?ref=${influencer.referralCode}`,
       stats: {
-        totalReferrals: referrals.length,
-        subscribedReferrals: referrals.filter((r) => r.hasSubscribed).length,
+        totalReferrals,
+        subscribedReferrals,
         balance: influencer.balance,
         totalEarned: influencer.totalEarned,
         totalPaid: influencer.totalPaid,

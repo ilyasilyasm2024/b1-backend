@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Influencer = require('./influencer.model');
 const Referral = require('./referral.model');
 const Commission = require('./commission.model');
@@ -16,10 +17,10 @@ class AffiliateRepository {
     return Influencer.findById(id);
   }
   findInfluencerByCode(code) {
-    return Influencer.findOne({ referralCode: code.toUpperCase(), status: 'active' });
+    return Influencer.findOne({ referralCode: code.toUpperCase(), status: 'active' }).lean();
   }
   listInfluencers() {
-    return Influencer.find().sort({ createdAt: -1 });
+    return Influencer.find().sort({ createdAt: -1 }).lean();
   }
   updateInfluencer(id, data) {
     return Influencer.findByIdAndUpdate(id, data, { new: true });
@@ -46,8 +47,25 @@ class AffiliateRepository {
   findReferralByUser(userId) {
     return Referral.findOne({ userId });
   }
+  // Atomic existence check — avoids loading all commissions just to test a bool.
+  userHasCommission(influencerId, userId) {
+    return Commission.exists({ influencerId, userId });
+  }
   listReferralsByInfluencer(influencerId) {
-    return Referral.find({ influencerId }).sort({ createdAt: -1 });
+    return Referral.find({ influencerId }).sort({ createdAt: -1 }).lean();
+  }
+  // Aggregated referral stats (counts) computed in the DB, not in Node.
+  referralStats(influencerId) {
+    return Referral.aggregate([
+      { $match: { influencerId: new mongoose.Types.ObjectId(influencerId) } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          subscribed: { $sum: { $cond: ['$hasSubscribed', 1, 0] } },
+        },
+      },
+    ]);
   }
   markReferralSubscribed(userId) {
     return Referral.findOneAndUpdate({ userId }, { hasSubscribed: true }, { new: true });
@@ -57,11 +75,26 @@ class AffiliateRepository {
   createCommission(data) {
     return Commission.create(data);
   }
-  listCommissionsByInfluencer(influencerId) {
-    return Commission.find({ influencerId }).sort({ createdAt: -1 });
+  listCommissionsByInfluencer(influencerId, { limit = 100 } = {}) {
+    return Commission.find({ influencerId })
+      .sort({ createdAt: -1 })
+      .limit(Math.min(Number(limit) || 100, 500))
+      .lean();
   }
   listPendingCommissions(influencerId) {
-    return Commission.find({ influencerId, status: 'pending' });
+    return Commission.find({ influencerId, status: 'pending' }).lean();
+  }
+  // Aggregated commission totals (pending sum) computed in the DB.
+  pendingCommissionTotal(influencerId) {
+    return Commission.aggregate([
+      {
+        $match: {
+          influencerId: new mongoose.Types.ObjectId(influencerId),
+          status: 'pending',
+        },
+      },
+      { $group: { _id: null, total: { $sum: '$commissionAmount' } } },
+    ]);
   }
   markCommissionsPaid(influencerId, period) {
     const filter = { influencerId, status: 'pending' };

@@ -10,4 +10,7 @@ const vocabularySchema = new mongoose.Schema({
   repeatNumber: { type: Number, default: 0 },
 }, { timestamps: true });
 
+// Compound index: list a user's vocabulary sorted by creation date.
+vocabularySchema.index({ userId: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Vocabulary', vocabularySchema);

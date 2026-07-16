@@ -15,4 +15,7 @@ const noteSchema = new mongoose.Schema({
   y: { type: Number, default: 120 },
 }, { timestamps: true });
 
+// Compound index: fetch a user's notes ordered by their manual order.
+noteSchema.index({ userId: 1, order: 1 });
+
 module.exports = mongoose.model('Note', noteSchema);

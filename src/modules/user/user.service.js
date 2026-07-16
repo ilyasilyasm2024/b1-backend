@@ -5,8 +5,8 @@ const { getPlanPrice } = require('../../config/plans');
 const VALID_PAID_PLANS = ['silver', 'gold', 'platinum', 'lifetime'];
 
 class UserService {
-  async getAllUsers() {
-    return userRepository.findAll();
+  async getAllUsers(pagination) {
+    return userRepository.findAll(pagination);
   }
 
   async getUserById(id) {
@@ -20,6 +20,21 @@ class UserService {
       throw new Error('Invalid plan');
     }
 
+    // Acquire an atomic lock so two concurrent subscribe calls for the same user
+    // can't both create a commission (prevents duplicate payouts on double-submit).
+    const locked = await userRepository.acquireSubscribeLock(userId);
+    if (!locked) {
+      throw new Error('A subscription request is already being processed');
+    }
+
+    try {
+      return await this._doSubscribe(userId, { plan, billing });
+    } finally {
+      await userRepository.releaseSubscribeLock(userId);
+    }
+  }
+
+  async _doSubscribe(userId, { plan, billing }) {
     const user = await userRepository.findById(userId);
     if (!user) throw new Error('User not found');
 

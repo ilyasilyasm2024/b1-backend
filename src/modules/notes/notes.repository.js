@@ -6,7 +6,7 @@ class NotesRepository {
   }
 
   async findAllByUser(userId) {
-    return Note.find({ userId }).sort({ createdAt: -1 });
+    return Note.find({ userId }).sort({ createdAt: -1 }).lean();
   }
 
   async findByIdAndUser(id, userId) {

@@ -2,10 +2,11 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const mongoose = require('mongoose');
+const MongoStore = require('rate-limit-mongo');
 // express-mongo-sanitize removed — incompatible with Express 5 (req.query is read-only)
 // Using custom sanitization below instead
 const morgan = require('morgan');
+const connectDatabase = require('./config/database');
 const userRoutes = require('./modules/user/user.routes');
 const vocabularyRoutes = require('./modules/vocabulary/vocabulary.routes');
 const progressRoutes = require('./modules/progress/progress.routes');
@@ -18,15 +19,15 @@ const authenticate = require('./middlewares/auth.middleware');
 
 const app = express();
 
-// Ensure DB is connected before handling any request (serverless support)
+// Ensure DB is connected before handling any request (serverless support).
+// Uses the cached-promise pattern from config/database so concurrent requests
+// share a single connection attempt instead of each opening a new one.
 app.use(async (req, res, next) => {
-  if (mongoose.connection.readyState !== 1) {
-    try {
-      await mongoose.connect(process.env.MONGO_DB_URL);
-    } catch (err) {
-      console.error('MongoDB connection error:', err.message);
-      return res.status(503).json({ error: 'Database connection failed' });
-    }
+  try {
+    await connectDatabase();
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+    return res.status(503).json({ error: 'Database connection failed' });
   }
   next();
 });
@@ -48,17 +49,37 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret'],
 }));
 
-// 7. Auth Failures - Rate limiting
+// 7. Auth Failures - Rate limiting.
+// Uses a shared MongoDB store so limits are enforced ACROSS serverless
+// instances (an in-memory store would reset on every cold start and let
+// distributed traffic bypass the limit). Each limiter uses its own collection.
+const RATE_WINDOW_MS = 15 * 60 * 1000;
+
+function mongoStore(collectionName) {
+  return new MongoStore({
+    uri: process.env.MONGO_DB_URL,
+    collectionName,
+    expireTimeMs: RATE_WINDOW_MS,
+    errorHandler: (err) => console.error(`Rate limit store error (${collectionName}):`, err.message),
+  });
+}
+
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: RATE_WINDOW_MS,
   max: 700,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: mongoStore('rateLimitGlobal'),
   message: { error: 'Too many requests, please try again later' },
 });
 app.use(limiter);
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: RATE_WINDOW_MS,
   max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: mongoStore('rateLimitAuth'),
   message: { error: 'Too many login attempts, please try again later' },
 });
 

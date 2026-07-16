@@ -18,4 +18,9 @@ const commissionSchema = new mongoose.Schema({
   period: { type: String, required: true, index: true },
 }, { timestamps: true });
 
+// Compound index for the "has this user purchased before?" check in recordPurchase.
+commissionSchema.index({ influencerId: 1, userId: 1 });
+// Compound index for dashboard filtering (pending commissions per period).
+commissionSchema.index({ influencerId: 1, status: 1, period: 1 });
+
 module.exports = mongoose.model('Commission', commissionSchema);

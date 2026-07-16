@@ -20,6 +20,9 @@ const userSchema = new mongoose.Schema({
   firstTour: { type: Boolean, default: false },
   plan: { type: String, enum: ['beta', 'free', 'silver', 'gold', 'platinum', 'lifetime'], required: true, default: 'beta' },
   subscriptionExpiresAt: { type: Date, default: null },
+  // Short-lived lease lock to serialize concurrent subscribe requests and
+  // prevent duplicate commission records from rapid double-submits.
+  subscribeLockAt: { type: Date, default: null, select: false },
   // Affiliate: referral code of the influencer who referred this user (if any)
   referredBy: { type: String, default: '', uppercase: true },
   streak: { type: Number, default: 0 },
@@ -34,5 +37,11 @@ const userSchema = new mongoose.Schema({
   timeSpentInOurApp: { type: Number, default: 0 },
   vocabularyList: [vocabularyItemSchema],
 }, { timestamps: true, minimize: false });
+
+// Indexes for frequently-queried fields (avoids collection scans at scale).
+// username & email are already unique-indexed via the field definitions above.
+userSchema.index({ referredBy: 1 }); // affiliate referral lookups
+userSchema.index({ verificationToken: 1 }); // email verification flow
+userSchema.index({ resetPasswordToken: 1 }); // password reset flow
 
 module.exports = mongoose.model('User', userSchema);
