@@ -11,6 +11,7 @@
     "test:watch": "jest --watch --testPathIgnorePatterns tests/integration",
     "test:coverage": "jest --coverage --runInBand",
     "audit:security": "bash scripts/security-audit.sh",
+    "seed:loadtest": "node scripts/seed-loadtest-user.js",
     "loadtest:smoke": "k6 run load-tests/smoke.js",
     "loadtest:load": "k6 run load-tests/load.js",
     "loadtest:spike": "k6 run load-tests/spike.js"

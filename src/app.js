@@ -15,6 +15,7 @@ const sprechenRoutes = require('./modules/sprechen/sprechen.routes');
 const notesRoutes = require('./modules/notes/notes.routes');
 const affiliateRoutes = require('./modules/affiliate/affiliate.routes');
 const authRoutes = require('./modules/auth/auth.routes');
+const billingRoutes = require('./modules/billing/billing.routes');
 const authenticate = require('./middlewares/auth.middleware');
 
 const app = express();
@@ -154,6 +155,7 @@ app.use('/progress', authenticate, progressRoutes);
 app.use('/schreiben', authenticate, schreibenRoutes);
 app.use('/sprechen', authenticate, sprechenRoutes);
 app.use('/notes', authenticate, notesRoutes);
+app.use('/billing', billingRoutes);
 
 // Global error handler - prevents leaking stack traces
 app.use((err, req, res, next) => {
