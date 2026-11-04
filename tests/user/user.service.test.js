@@ -99,6 +99,19 @@ describe('UserService.subscribe', () => {
 });
 
 describe('UserService.updateUser', () => {
+  it('only lets profile fields through (referral, streak, reset tokens are ignored)', async () => {
+    userRepository.update.mockImplementation((id, data) => Promise.resolve(data));
+    const result = await userService.updateUser('u1', {
+      lastName: 'Q',
+      imageUrl: 'x.png',
+      referredBy: 'FREE50',
+      streak: 999,
+      resetPasswordToken: 't',
+      subscribeLockAt: new Date(),
+    });
+    expect(result).toEqual({ lastName: 'Q', imageUrl: 'x.png' });
+  });
+
   it('strips protected fields before updating', async () => {
     userRepository.update.mockImplementation((id, data) => Promise.resolve(data));
 

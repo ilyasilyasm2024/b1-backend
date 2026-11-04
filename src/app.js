@@ -15,10 +15,14 @@ const sprechenRoutes = require('./modules/sprechen/sprechen.routes');
 const notesRoutes = require('./modules/notes/notes.routes');
 const affiliateRoutes = require('./modules/affiliate/affiliate.routes');
 const authRoutes = require('./modules/auth/auth.routes');
-const billingRoutes = require('./modules/billing/billing.routes');
 const authenticate = require('./middlewares/auth.middleware');
+const { attachMessageCodes } = require('./config/messageCodes');
 
 const app = express();
+
+// i18n: add stable `code` / `messageCode` fields next to English messages so clients can translate them.
+// Registered first so every response (including the 503 below) gets them.
+app.use(attachMessageCodes);
 
 // Ensure DB is connected before handling any request (serverless support).
 // Uses the cached-promise pattern from config/database so concurrent requests
@@ -155,7 +159,10 @@ app.use('/progress', authenticate, progressRoutes);
 app.use('/schreiben', authenticate, schreibenRoutes);
 app.use('/sprechen', authenticate, sprechenRoutes);
 app.use('/notes', authenticate, notesRoutes);
-app.use('/billing', billingRoutes);
+// Billing has been removed: anything under /billing answers 404.
+app.use('/billing', (req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
 
 // Global error handler - prevents leaking stack traces
 app.use((err, req, res, next) => {

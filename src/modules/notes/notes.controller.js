@@ -14,6 +14,7 @@ class NotesController {
       const note = await notesService.addNote(userId, value);
       res.status(201).json(note);
     } catch (err) {
+      if (err.status === 400) return res.status(400).json({ error: err.message });
       console.error(err);
       res.status(500).json({ error: 'Something went wrong' });
     }

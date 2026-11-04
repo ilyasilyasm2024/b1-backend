@@ -22,6 +22,15 @@ describe('NotesController.add', () => {
     expect(res.status).toHaveBeenCalledWith(201);
   });
 
+  it('returns 400 with the message when the note limit is reached', async () => {
+    const err = Object.assign(new Error('Maximum 20 text notes. Delete an old note to add a new one.'), { status: 400 });
+    notesService.addNote.mockRejectedValue(err);
+    const res = mockRes();
+    await controller.add(mockReq({ user, body: { type: 'text', content: 'hi' } }), res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: err.message });
+  });
+
   it('returns 500 when the service throws', async () => {
     notesService.addNote.mockRejectedValue(new Error('db'));
     const res = mockRes();

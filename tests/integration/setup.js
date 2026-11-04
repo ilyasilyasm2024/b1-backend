@@ -9,6 +9,8 @@ let mongo;
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'integration-test-secret';
 process.env.ADMIN_SECRET = process.env.ADMIN_SECRET || 'integration-admin-secret';
 process.env.NODE_ENV = 'test';
+// The subscribe-concurrency test exercises the self-subscribe route, which is off by default.
+process.env.ALLOW_SELF_SUBSCRIBE = 'true';
 process.env.FRONTEND_URL = 'http://localhost:5173';
 
 async function startDb() {

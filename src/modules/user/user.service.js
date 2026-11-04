@@ -4,6 +4,8 @@ const { getPlanPrice } = require('../../config/plans');
 
 const VALID_PAID_PLANS = ['silver', 'gold', 'platinum', 'lifetime'];
 
+const UPDATABLE_PROFILE_FIELDS = ['firstName', 'lastName', 'imageUrl'];
+
 class UserService {
   async getAllUsers(pagination) {
     return userRepository.findAll(pagination);
@@ -91,16 +93,13 @@ class UserService {
   }
 
   async updateUser(id, updateData) {
-    // Prevent updating sensitive fields through this route
-    delete updateData.password;
-    delete updateData.email;
-    delete updateData.isVerified;
-    delete updateData.verificationToken;
-    delete updateData.verificationTokenExpires;
-    delete updateData.token;
-    delete updateData.plan;
-    delete updateData.subscriptionExpiresAt;
-    return userRepository.update(id, updateData);
+    // Only these profile fields can be changed through this route. An allowlist (not a list of
+    // forbidden fields) so new fields like plan, referredBy or reset tokens are never writable here.
+    const data = {};
+    for (const field of UPDATABLE_PROFILE_FIELDS) {
+      if (updateData[field] !== undefined) data[field] = updateData[field];
+    }
+    return userRepository.update(id, data);
   }
 
   async deleteUser(id) {
