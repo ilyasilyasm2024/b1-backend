@@ -72,7 +72,7 @@ class UserController {
 
   async completeTour(req, res) {
     try {
-      const user = await userService.updateUser(req.user.userId, { firstTour: true });
+      const user = await userService.completeTour(req.user.userId);
       if (!user) return res.status(404).json({ error: 'User not found' });
       res.json({ message: 'Tour completed' });
     } catch (err) {

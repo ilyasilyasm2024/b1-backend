@@ -147,3 +147,25 @@ describe('password reset flow', () => {
     expect(loginRes.status).toBe(200);
   });
 });
+
+describe('POST /users/me/tour-completed', () => {
+  it('stores firstTour so the tour does not start again', async () => {
+    await request(app).post('/auth/signup').send(signupBody);
+    await User.updateOne({ email: signupBody.email }, { isVerified: true });
+    const login = await request(app)
+      .post('/auth/login')
+      .send({ identifier: signupBody.username, password: signupBody.password });
+
+    const res = await request(app)
+      .post('/users/me/tour-completed')
+      .set('Authorization', `Bearer ${login.body.token}`)
+      .send({});
+    expect(res.status).toBe(200);
+
+    const stored = await User.findOne({ email: signupBody.email });
+    expect(stored.firstTour).toBe(true);
+
+    const me = await request(app).get('/users/me').set('Authorization', `Bearer ${login.body.token}`);
+    expect(me.body.firstTour).toBe(true);
+  });
+});

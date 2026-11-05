@@ -102,6 +102,11 @@ class UserService {
     return userRepository.update(id, data);
   }
 
+  // firstTour is not a profile field (updateUser's allowlist drops it), so it has its own method.
+  async completeTour(id) {
+    return userRepository.update(id, { firstTour: true });
+  }
+
   async deleteUser(id) {
     return userRepository.delete(id);
   }

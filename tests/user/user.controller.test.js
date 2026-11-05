@@ -107,10 +107,11 @@ describe('UserController.update / delete / completeTour', () => {
   });
 
   it('completeTour sets firstTour', async () => {
-    userService.updateUser.mockResolvedValue({ _id: 'u1', firstTour: true });
+    userService.completeTour.mockResolvedValue({ _id: 'u1', firstTour: true });
     const res = mockRes();
     await controller.completeTour(mockReq({ user }), res);
-    expect(userService.updateUser).toHaveBeenCalledWith('u1', { firstTour: true });
+    expect(userService.completeTour).toHaveBeenCalledWith('u1');
+    expect(res.json).toHaveBeenCalledWith({ message: 'Tour completed' });
   });
 });
 
