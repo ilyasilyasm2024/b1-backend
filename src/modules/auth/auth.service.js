@@ -3,13 +3,24 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const authRepository = require('./auth.repository');
 const affiliateService = require('../affiliate/affiliate.service');
-const { sendVerificationEmail, sendResetPasswordEmail } = require('../../config/mailer');
+const { sendVerificationEmail, sendResetPasswordEmail, checkEmailDomain } = require('../../config/mailer');
 
 class AuthService {
   async signup({ username, email, firstName, lastName, password, referralCode }) {
+    // An unverified account can be replaced by its owner (same username and password),
+    // e.g. after signing up with a mistyped email that never received the link.
+    let replacedUserId = null;
     const existingUser = await authRepository.findByUsername(username);
     if (existingUser) {
-      throw new Error('Username already exists');
+      const withPassword = !existingUser.isVerified && existingUser.email !== email
+        ? await authRepository.findByUsernameOrEmail(username)
+        : null;
+      const sameOwner = withPassword && withPassword.password
+        && (await bcrypt.compare(password, withPassword.password));
+      if (!sameOwner) {
+        throw new Error('Username already exists');
+      }
+      replacedUserId = existingUser._id;
     }
 
     const existingEmail = await authRepository.findByEmail(email);
@@ -17,11 +28,25 @@ class AuthService {
       throw new Error('Email already exists');
     }
 
+    // Reject addresses whose domain cannot receive mail (typos like "gmial.com").
+    if ((await checkEmailDomain(email)) === false) {
+      throw new Error('This email domain does not exist');
+    }
+
     // If a referral code was provided, validate it before storing.
     let validReferralCode = '';
     if (referralCode) {
       const check = await affiliateService.validateCode(referralCode);
       if (check.valid) validReferralCode = check.referralCode;
+    }
+
+    if (replacedUserId) {
+      await authRepository.deleteById(replacedUserId);
+      try {
+        await affiliateService.detachReferral(replacedUserId);
+      } catch (e) {
+        console.error('Referral detach failed:', e.message);
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -42,6 +67,21 @@ class AuthService {
       referredBy: validReferralCode,
     });
 
+    // Send the verification email before answering, so the user only sees
+    // "email sent" when the mail server actually accepted it. If sending fails,
+    // remove the account so the user can sign up again with the right address.
+    try {
+      await sendVerificationEmail(email, verificationToken);
+    } catch (e) {
+      console.error('Verification email failed:', e.message);
+      try {
+        await authRepository.deleteById(user._id);
+      } catch (delErr) {
+        console.error('Cleanup after failed verification email failed:', delErr.message);
+      }
+      throw new Error('Could not send the verification email. Please check your email address.');
+    }
+
     // Link this user to the influencer for referral tracking.
     if (validReferralCode) {
       try {
@@ -56,12 +96,6 @@ class AuthService {
         console.error('Referral attach failed:', e.message);
       }
     }
-
-    // Fire-and-forget: don't block the signup response on the SMTP round-trip.
-    // Errors are logged; the user can request a resend if needed.
-    sendVerificationEmail(email, verificationToken).catch((e) => {
-      console.error('Verification email failed:', e.message);
-    });
 
     return { message: 'Account created. Please check your email to verify your account.' };
   }
@@ -97,7 +131,12 @@ class AuthService {
     const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await authRepository.updateVerificationToken(user._id, verificationToken, verificationTokenExpires);
-    await sendVerificationEmail(email, verificationToken);
+    try {
+      await sendVerificationEmail(email, verificationToken);
+    } catch (e) {
+      console.error('Verification email failed:', e.message);
+      throw new Error('Could not send the verification email. Please check your email address.');
+    }
 
     return { message: 'Verification email resent. Please check your inbox.' };
   }
@@ -148,7 +187,12 @@ class AuthService {
     const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await authRepository.updateResetToken(user._id, resetToken, resetExpires);
-    await sendResetPasswordEmail(email, resetToken);
+    try {
+      await sendResetPasswordEmail(email, resetToken);
+    } catch (e) {
+      console.error('Reset password email failed:', e.message);
+      throw new Error('Could not send the password reset email. Please try again later.');
+    }
 
     return { message: 'Password reset email sent. Please check your inbox.' };
   }

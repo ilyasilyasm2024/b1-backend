@@ -26,6 +26,32 @@ describe('AuthService.signup', () => {
       .rejects.toThrow('Username already exists');
   });
 
+  it('replaces an unverified account when the owner signs up again with another email', async () => {
+    authRepository.findByUsername.mockResolvedValue({ _id: 'old', isVerified: false, email: 'typo@gmail.com' });
+    authRepository.findByUsernameOrEmail.mockResolvedValue({ _id: 'old', password: 'hashed-old' });
+    authRepository.findByEmail.mockResolvedValue(null);
+    authRepository.deleteById.mockResolvedValue({});
+    bcrypt.compare.mockResolvedValue(true);
+
+    const result = await authService.signup({
+      username: 'ilyas', email: 'a@b.com', firstName: 'I', lastName: 'Q', password: 'p',
+    });
+
+    expect(authRepository.deleteById).toHaveBeenCalledWith('old');
+    expect(affiliateService.detachReferral).toHaveBeenCalledWith('old');
+    expect(result.message).toMatch(/check your email/i);
+  });
+
+  it('keeps an unverified account when the password does not match', async () => {
+    authRepository.findByUsername.mockResolvedValue({ _id: 'old', isVerified: false, email: 'typo@gmail.com' });
+    authRepository.findByUsernameOrEmail.mockResolvedValue({ _id: 'old', password: 'hashed-old' });
+    bcrypt.compare.mockResolvedValue(false);
+
+    await expect(authService.signup({ username: 'ilyas', email: 'a@b.com', password: 'other' }))
+      .rejects.toThrow('Username already exists');
+    expect(authRepository.deleteById).not.toHaveBeenCalledWith('old');
+  });
+
   it('throws when the email already exists', async () => {
     authRepository.findByUsername.mockResolvedValue(null);
     authRepository.findByEmail.mockResolvedValue({ _id: 'x' });
@@ -73,16 +99,30 @@ describe('AuthService.signup', () => {
     expect(result.message).toBeDefined();
   });
 
-  it('does not fail signup when the verification email throws', async () => {
+  it('fails signup and removes the user when the verification email throws', async () => {
     authRepository.findByUsername.mockResolvedValue(null);
     authRepository.findByEmail.mockResolvedValue(null);
+    authRepository.deleteById.mockResolvedValue({});
     mailer.sendVerificationEmail.mockRejectedValue(new Error('smtp down'));
 
-    const result = await authService.signup({
+    await expect(authService.signup({
       username: 'ilyas', email: 'a@b.com', firstName: 'I', lastName: 'Q', password: 'p',
-    });
+    })).rejects.toThrow('Could not send the verification email');
 
-    expect(result.message).toBeDefined();
+    expect(authRepository.deleteById).toHaveBeenCalledWith('u1');
+    expect(affiliateService.attachReferral).not.toHaveBeenCalled();
+  });
+
+  it('rejects an email whose domain cannot receive mail', async () => {
+    authRepository.findByUsername.mockResolvedValue(null);
+    authRepository.findByEmail.mockResolvedValue(null);
+    mailer.checkEmailDomain.mockResolvedValueOnce(false);
+
+    await expect(authService.signup({
+      username: 'ilyas', email: 'a@gmial.con', firstName: 'I', lastName: 'Q', password: 'p',
+    })).rejects.toThrow('This email domain does not exist');
+
+    expect(authRepository.create).not.toHaveBeenCalled();
   });
 });
 

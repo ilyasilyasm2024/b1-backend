@@ -23,6 +23,10 @@ class AuthRepository {
     return User.create(userData);
   }
 
+  async deleteById(userId) {
+    return User.findByIdAndDelete(userId);
+  }
+
   async verifyUser(userId) {
     return User.findByIdAndUpdate(userId, {
       isVerified: true,

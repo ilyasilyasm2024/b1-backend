@@ -46,9 +46,27 @@ describe('POST /auth/signup', () => {
     await request(app).post('/auth/signup').send(signupBody);
     const res = await request(app)
       .post('/auth/signup')
+      .send({ ...signupBody, email: 'other@example.com', password: 'different123' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/Username already exists/);
+  });
+
+  it('rejects a duplicate username once the account is verified', async () => {
+    await request(app).post('/auth/signup').send(signupBody);
+    await User.updateOne({ email: signupBody.email }, { isVerified: true });
+    const res = await request(app)
+      .post('/auth/signup')
       .send({ ...signupBody, email: 'other@example.com' });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/Username already exists/);
+  });
+
+  it('lets the owner of an unverified account sign up again with a corrected email', async () => {
+    await request(app).post('/auth/signup').send({ ...signupBody, email: 'typo@example.com' });
+    const res = await request(app).post('/auth/signup').send(signupBody);
+    expect(res.status).toBe(201);
+    expect(await User.findOne({ email: 'typo@example.com' })).toBeNull();
+    expect(await User.findOne({ email: signupBody.email })).toBeTruthy();
   });
 
   it('rejects a duplicate email', async () => {

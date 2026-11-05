@@ -80,6 +80,11 @@ class AffiliateService {
     });
   }
 
+  // Removes a user's referral link (used when an unverified account is replaced).
+  async detachReferral(userId) {
+    return repo.deleteReferralByUser(userId);
+  }
+
   // --- Called when a referred user purchases a subscription ---
   async recordPurchase({ userId, username, plan, amountPaid }) {
     const referral = await repo.findReferralByUser(userId);

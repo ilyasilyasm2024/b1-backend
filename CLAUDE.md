@@ -82,8 +82,12 @@ Every data query is scoped by `req.user.userId` (`{ _id: id, userId }`) — keep
 ## Domain logic
 
 **Auth** (`auth.service.js`): signup checks username/email, validates optional referral code,
-creates user with **`plan: 'beta'`**, attaches a Referral, sends verification email fire-and-forget
-(token 24h). Login by username **or** email (`identifier`), requires `isVerified`, issues JWT 7d
+rejects email domains with no mail server (`mailer.checkEmailDomain`, DNS MX/A), creates user with
+**`plan: 'beta'`**, then **awaits** the verification email (token 24h): if sending fails the user is deleted
+and signup returns `VERIFICATION_EMAIL_FAILED`; the Referral is attached only after a successful send.
+Gmail SMTP accepts non-existent mailboxes and bounces later, so that case is **not** detected (frontend
+shows the address and a "wrong email → nothing arrives" note). An **unverified** account can be replaced by
+signing up again with the same username **and password** (old user + its Referral are deleted). Login by username **or** email (`identifier`), requires `isVerified`, issues JWT 7d
 (`{ userId, username }`), stores it on the user, updates daily `streak` / `lastLoginDate` / `loginDates`.
 Reset token is 1h.
 

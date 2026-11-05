@@ -44,6 +44,9 @@ class AffiliateRepository {
   createReferral(data) {
     return Referral.create(data);
   }
+  deleteReferralByUser(userId) {
+    return Referral.deleteOne({ userId });
+  }
   findReferralByUser(userId) {
     return Referral.findOne({ userId });
   }

@@ -1,3 +1,4 @@
+const dns = require('dns').promises;
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -13,7 +14,7 @@ const transporter = nodemailer.createTransport({
 const sendVerificationEmail = async (to, token) => {
   const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: `"B1 Prüfungsvorbereitung" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
     to,
     subject: 'Bestätige deine E-Mail-Adresse ✓',
@@ -104,12 +105,17 @@ const sendVerificationEmail = async (to, token) => {
 </html>
     `,
   });
+
+  // The SMTP server can refuse a recipient without throwing.
+  if (info && Array.isArray(info.rejected) && info.rejected.length > 0) {
+    throw new Error(`Recipient rejected: ${info.rejected.join(', ')}`);
+  }
 };
 
 const sendResetPasswordEmail = async (to, token) => {
   const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: `"B1 Prüfungsvorbereitung" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
     to,
     subject: 'Passwort zurücksetzen',
@@ -196,6 +202,47 @@ const sendResetPasswordEmail = async (to, token) => {
 </html>
     `,
   });
+
+  if (info && Array.isArray(info.rejected) && info.rejected.length > 0) {
+    throw new Error(`Recipient rejected: ${info.rejected.join(', ')}`);
+  }
 };
 
-module.exports = { sendVerificationEmail, sendResetPasswordEmail };
+// Checks that the email's domain can receive mail (MX record, or A/AAAA as the
+// RFC 5321 fallback). Catches typos like "gmial.com" before we create an account.
+// Returns false only when DNS clearly says the domain has no mail server; on
+// timeouts or other DNS trouble it returns true so signup is not blocked.
+const NO_DOMAIN_CODES = new Set(['ENOTFOUND', 'ENODATA', 'NXDOMAIN']);
+
+const withTimeout = (promise, ms) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(Object.assign(new Error('DNS timeout'), { code: 'ETIMEOUT' })), ms).unref();
+    }),
+  ]);
+
+const checkEmailDomain = async (email) => {
+  const domain = String(email).split('@').pop().trim().toLowerCase();
+  if (!domain) return false;
+
+  try {
+    const mx = await withTimeout(dns.resolveMx(domain), 5000);
+    // A "null MX" (RFC 7505: single record with exchange ".") means the domain accepts no mail.
+    if (mx.length === 1 && (mx[0].exchange === '' || mx[0].exchange === '.')) return false;
+    if (mx.length > 0) return true;
+  } catch (err) {
+    if (!NO_DOMAIN_CODES.has(err.code)) return true;
+    if (err.code === 'ENOTFOUND') return false;
+  }
+
+  // No MX record: fall back to an address record.
+  try {
+    const a = await withTimeout(dns.resolve(domain), 5000);
+    return a.length > 0;
+  } catch (err) {
+    return !NO_DOMAIN_CODES.has(err.code);
+  }
+};
+
+module.exports = { sendVerificationEmail, sendResetPasswordEmail, checkEmailDomain };
